@@ -5,7 +5,7 @@ ACM MM2025
 
 [Lei Yao](https://rayyoh.github.io/), [Yi Wang](https://wangyintu.github.io/), [Yi Zhang](https://cindy0725.github.io/), [Moyun Liu](https://lmomoy.github.io/), [Lap-Pui Chau](https://www.eie.polyu.edu.hk/~lpchau/)
 
-<a href=""><img src='https://img.shields.io/badge/arXiv-xxxx.xxxx-b31b1b.svg'></a>
+<a href="https://arxiv.org/abs/2508.02172"><img src='https://img.shields.io/badge/arXiv-2508.02172-b31b1b.svg'></a>
 <a href="https://rayyoh.github.io/GaussianCross/"><img src='https://img.shields.io/badge/Project-Page-Green'></a>
 <a href="https://github.com/pre-commit/pre-commit"><img src="https://img.shields.io/badge/-Python_3.8-blue?logo=python&logoColor=white">
 <a href="https://huggingface.co/RayYoh/GaussianCross"><img src="https://img.shields.io/badge/Weights-grey?style=plastic&logo=huggingface&logoColor=yellow">
@@ -13,13 +13,14 @@ ACM MM2025
 
 ![image](./assets/teaser.png)
 
+<font color=red><b>Note:</b> Since the work is still woking in progress, the full pre-training code has not been updated yet.</font>
 
 </div>
 
 ## :memo: To-Do List
 - [ ] Environment installation instructions.
 - [ ] Instructions for processing (pretraining) dataset.
-- [x] Processing (pretraining) code.
+- [x] Processing (pretraining part) code.
 - [x] Release downstream training configs.
 - [x] Release trained weights and experiment record.
 - [ ] Release pretraining code.
@@ -117,11 +118,17 @@ Our code is primarily built upon [Pointcept](https://github.com/Pointcept/Pointc
 ## :pencil: Citation
 
 ```bib
-@article{yao2025gaussian,
+@article{yao2025gaussiancross,
   title={GaussianCross: Cross-modal Self-supervised 3D Representation Learning via Gaussian Splatting},
   author={Yao, Lei and Wang, Yi and Zhang, Yi and Liu, Moyun and Chau, Lap-Pui},
-  journal={xxx},
-  year={2025},
-  publisher={xxx}
+  journal={arXiv preprint arXiv:2508.02172},
+  year={2025}
+}
+or
+@inproceedings{yao2025gaussiancross, 
+  title={GaussianCross: Cross-modal Self-supervised 3D Representation Learning via Gaussian Splatting}, 
+  author={Yao, Lei and Wang, Yi and Zhang, Yi and Liu, Moyun and Chau, Lap-Pui}, 
+  booktitle={Proceedings of the 33nd ACM International Conference on Multimedia}, 
+  year={2025}
 }
 ```
