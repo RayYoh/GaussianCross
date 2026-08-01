@@ -9,21 +9,60 @@
 <meta property="og:description" content="ACM MM 2025. Self-supervised 3D pre-training via feed-forward Gaussian splatting.">
 <meta property="og:image" content="https://rayyoh.github.io/GaussianCross/static/images/teaser.webp">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#f6f4ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14161b" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
+  color-scheme:light dark;
   /* warm paper light theme — every paper figure has a white background, so the
      page sits just below pure white and the figures read as plates laid on it */
   --bg:#f6f4ef; --bg2:#fdfcfa; --line:#ddd7cc; --line2:#e7e2d9;
   --ink:#191c22; --ink2:#4d5460; --ink3:#8b8e93;
-  --amber:#c05611; --mint:#0d8265;
+  --amber:#c05611; --mint:#0d8265; --gold:#d98a2b;
   --tint:rgba(25,28,34,.032); --tint2:rgba(25,28,34,.055);
-  --ours:rgba(192,86,17,.09); --ours2:rgba(192,86,17,.15);
+  --ours:rgba(192,86,17,.09); --ours2:rgba(192,86,17,.15); --delta:rgba(192,86,17,.05);
   --onAccent:#fffdf8;
+  --glowA:rgba(192,86,17,.09); --glowB:rgba(13,130,101,.08); --glowC:rgba(13,130,101,.045);
+  /* figure plates hold white-background crops from the paper, so they stay white in
+     both themes — a tinted mount would draw a visible seam around the artwork */
+  --paper:#fff; --plateEdge:rgba(192,86,17,.45);
+  /* the point-cloud stages are ours to colour, so they do follow the theme */
+  --stage:#fff; --stageInk:#98a3b4; --chrome:rgba(255,255,255,.9); --chromeLine:#dfe3ea;
+  --chromeInk:#6b7688; --chromeInkH:#111; --track:#b3bbc7; --thumb:#fff;
+  --shadow:rgba(25,28,34,.30); --shadow2:rgba(25,28,34,.45); --shadow3:rgba(25,28,34,.5);
+  /* diagram tones: isometric cuboid faces, extruded voxels, sketch dots */
+  --isoTop:#ffffff; --isoSide:rgba(25,28,34,.075); --isoFront:rgba(25,28,34,.018);
+  --isoEdge:#b9b2a5; --dotInk:#7e8899; --fillM:rgba(13,130,101,.10); --fillD:rgba(25,28,34,.028);
+  --voxF:rgba(13,130,101,.28); --voxT:rgba(13,130,101,.5); --voxR:rgba(13,130,101,.15);
+  --voxS:rgba(13,130,101,.5); --red:#c0392b;
   --sans:'Sora',sans-serif; --serif:'Literata',Georgia,serif; --mono:'JetBrains Mono',monospace;
   --math:'Literata',Cambria,'STIX Two Math','DejaVu Serif',Georgia,serif;
+}
+/* Night follows the OS setting. Accents are lifted well above their paper values —
+   #c05611 and #0d8265 both go muddy against a dark ground — while the raster figure
+   plates deliberately stay white so the paper artwork is never re-tinted. */
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#14161b; --bg2:#1a1d23; --line:#333944; --line2:#242830;
+    --ink:#edeff3; --ink2:#a6adb9; --ink3:#767d8a;
+    --amber:#f08a3c; --mint:#33c49b; --gold:#e8b355;
+    --tint:rgba(255,255,255,.04); --tint2:rgba(255,255,255,.07);
+    --ours:rgba(240,138,60,.13); --ours2:rgba(240,138,60,.20); --delta:rgba(240,138,60,.07);
+    --onAccent:#14161b;
+    --glowA:rgba(240,138,60,.10); --glowB:rgba(51,196,155,.08); --glowC:rgba(51,196,155,.05);
+    --plateEdge:rgba(240,138,60,.5);
+    --stage:#0e1014; --stageInk:#6c7481; --chrome:rgba(14,16,20,.82); --chromeLine:#39404b;
+    --chromeInk:#98a1ae; --chromeInkH:#edeff3; --track:#3d4450; --thumb:#e9ebef;
+    --shadow:rgba(0,0,0,.60); --shadow2:rgba(0,0,0,.70); --shadow3:rgba(0,0,0,.75);
+    --isoTop:rgba(255,255,255,.10); --isoSide:rgba(255,255,255,.045);
+    --isoFront:rgba(255,255,255,.015);
+    --isoEdge:#5b6472; --dotInk:#8d96a4; --fillM:rgba(51,196,155,.13); --fillD:rgba(255,255,255,.035);
+    --voxF:rgba(51,196,155,.30); --voxT:rgba(51,196,155,.55); --voxR:rgba(51,196,155,.16);
+    --voxS:rgba(51,196,155,.55); --red:#e2604d;
+  }
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -35,8 +74,8 @@ a{color:var(--mint)}
 /* ============ hero ============ */
 .hero{position:relative;min-height:100vh;display:flex;align-items:center;padding:52px 0 40px}
 .hero::before{content:"";position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(920px 540px at 76% 34%, rgba(192,86,17,.09), transparent 64%),
-             radial-gradient(780px 500px at 16% 74%, rgba(13,130,101,.08), transparent 62%)}
+  background:radial-gradient(920px 540px at 76% 34%, var(--glowA), transparent 64%),
+             radial-gradient(780px 500px at 16% 74%, var(--glowB), transparent 62%)}
 .hero .wrap{position:relative;z-index:1}
 .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:52px;align-items:center}
 @media(max-width:980px){.grid{grid-template-columns:1fr;gap:32px}}
@@ -46,7 +85,7 @@ a{color:var(--mint)}
 .badge i{width:24px;height:1px;background:var(--mint);display:block}
 h1{font-family:var(--sans);font-weight:800;font-size:clamp(2.5rem,5.2vw,3.9rem);line-height:.98;
    letter-spacing:-.035em;margin:0 0 14px}
-h1 .g{background:linear-gradient(96deg,var(--amber),#d98a2b 44%,var(--mint));
+h1 .g{background:linear-gradient(96deg,var(--amber),var(--gold) 44%,var(--mint));
       -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .sub{font-family:var(--sans);font-weight:400;font-size:clamp(1rem,1.5vw,1.14rem);line-height:1.4;
      color:var(--ink2);margin:0 0 24px;max-width:46ch}
@@ -69,30 +108,30 @@ h1 .g{background:linear-gradient(96deg,var(--amber),#d98a2b 44%,var(--mint));
 
 /* ============ viewer ============ */
 .viewer{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;
-  background:#fff;box-shadow:0 26px 54px -34px rgba(25,28,34,.30)}
-.stage{position:relative;aspect-ratio:1/.86;width:100%;background:#fff}
+  background:var(--stage);box-shadow:0 26px 54px -34px var(--shadow)}
+.stage{position:relative;aspect-ratio:1/.86;width:100%;background:var(--stage)}
 .stage canvas{width:100%;height:100%;display:block;cursor:grab}
 .stage canvas:active{cursor:grabbing}
 .load{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);
-  font-size:11.5px;color:#98a3b4;letter-spacing:.1em;background:#fff;transition:opacity .5s}
+  font-size:11.5px;color:var(--stageInk);letter-spacing:.1em;background:var(--stage);transition:opacity .5s}
 .load.gone{opacity:0;pointer-events:none}
 .vtop{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;
   align-items:flex-start;gap:10px;pointer-events:none}
 .scenes{display:flex;gap:5px;pointer-events:auto;flex-wrap:wrap}
 .sc{font-family:var(--mono);font-size:10.5px;padding:5px 9px;border-radius:3px;cursor:pointer;
-  border:1px solid #dfe3ea;background:rgba(255,255,255,.9);color:#6b7688;transition:.16s}
-.sc:hover{color:#111}
-.sc.on{border-color:var(--mint);color:var(--mint);background:#fff}
-.hint{font-family:var(--mono);font-size:10px;color:#8a94a6;background:rgba(255,255,255,.88);
+  border:1px solid var(--chromeLine);background:var(--chrome);color:var(--chromeInk);transition:.16s}
+.sc:hover{color:var(--chromeInkH)}
+.sc.on{border-color:var(--mint);color:var(--mint);background:var(--stage)}
+.hint{font-family:var(--mono);font-size:10px;color:var(--chromeInk);background:var(--chrome);
   padding:5px 9px;border-radius:3px;white-space:nowrap}
 .vbot{position:absolute;left:14px;right:14px;bottom:13px;display:flex;flex-direction:column;gap:7px}
 .lbls{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em}
-.lbls .a{color:#6b7688}.lbls .b{color:var(--amber)}
+.lbls .a{color:var(--chromeInk)}.lbls .b{color:var(--amber)}
 input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:3px;border-radius:2px;
-  background:linear-gradient(90deg,#b3bbc7,var(--amber));outline:none;cursor:pointer}
+  background:linear-gradient(90deg,var(--track),var(--amber));outline:none;cursor:pointer}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;
-  background:#fff;border:2px solid var(--amber);cursor:grab;box-shadow:0 1px 4px rgba(0,0,0,.22)}
-input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid var(--amber)}
+  background:var(--thumb);border:2px solid var(--amber);cursor:grab;box-shadow:0 1px 4px rgba(0,0,0,.22)}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--thumb);border:2px solid var(--amber)}
 .cap{font-family:var(--serif);font-size:12.5px;color:var(--ink3);margin-top:12px;line-height:1.55;
   padding-left:12px;border-left:2px solid var(--line)}
 
@@ -152,7 +191,7 @@ section + section{border-top:1px solid var(--line2)}
   .node{border-bottom:1px solid var(--line2)}.node[data-i="1"]{border-right:0}}
 
 .stagebox{position:relative;padding:26px 26px 6px;background:
-  radial-gradient(720px 320px at 50% 0%, rgba(13,130,101,.045), transparent 72%)}
+  radial-gradient(720px 320px at 50% 0%, var(--glowC), transparent 72%)}
 .stagebox svg{display:block;width:100%;height:auto}
 .sv{opacity:0;visibility:hidden;transition:opacity .45s ease}
 .pipe[data-step="0"] .sv[data-i="0"],.pipe[data-step="1"] .sv[data-i="1"],
@@ -206,26 +245,30 @@ section + section{border-top:1px solid var(--line2)}
 .pipe[data-step="2"] .sv[data-i="2"] .flow,.pipe[data-step="3"] .sv[data-i="3"] .flow{animation:dash 1.1s linear infinite}
 @keyframes dash{to{stroke-dashoffset:-20}}
 .solid{stroke:var(--line);stroke-width:1;fill:none}
-.blk{fill:rgba(13,130,101,.10);stroke:var(--mint);stroke-width:1.1}
-.blkA{fill:rgba(192,86,17,.09);stroke:var(--amber);stroke-width:1.1}
-.blkD{fill:rgba(25,28,34,.028);stroke:var(--line);stroke-width:1}
-.pt{fill:#7e8899}
+.blk{fill:var(--fillM);stroke:var(--mint);stroke-width:1.1}
+.blkA{fill:var(--ours);stroke:var(--amber);stroke-width:1.1}
+.blkD{fill:var(--fillD);stroke:var(--line);stroke-width:1}
+.pt{fill:var(--dotInk)}
+.arw{fill:var(--ink3)}
+.qmk{stroke:var(--mint);fill:none;stroke-width:1.2}
+.qmk.c{fill:var(--mint);stroke:none}
+.tick{fill:none;stroke:var(--ink);stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}
 .pipe[data-step="0"] .sv[data-i="0"] .pt.msk{animation:mout 2.6s .6s cubic-bezier(.4,0,.2,1) forwards}
 @keyframes mout{to{opacity:.08;transform:translateY(6px)}}
 .bar{fill:var(--mint)}
 .pipe[data-step="0"] .sv[data-i="0"] .bar{animation:barp 1.6s ease-in-out infinite alternate}
 @keyframes barp{from{opacity:.45}to{opacity:1}}
 /* the cuboid is drawn isometrically: three face tones sell the volume */
-.cTop{fill:#ffffff;stroke:none}
-.cSide{fill:rgba(25,28,34,.075);stroke:none}
-.cFront{fill:rgba(25,28,34,.018);stroke:none}
+.cTop{fill:var(--isoTop);stroke:none}
+.cSide{fill:var(--isoSide);stroke:none}
+.cFront{fill:var(--isoFront);stroke:none}
 .cGrid path{fill:none;stroke:var(--line);stroke-width:.7;opacity:.6}
-.cEdge path{fill:none;stroke:#b9b2a5;stroke-width:1.1;stroke-linejoin:round}
+.cEdge path{fill:none;stroke:var(--isoEdge);stroke-width:1.1;stroke-linejoin:round}
 /* each occupied voxel is a little extruded cube, lit from the top */
 .vox{opacity:0}
-.vf{fill:rgba(13,130,101,.28);stroke:rgba(13,130,101,.5);stroke-width:.55}
-.vt{fill:rgba(13,130,101,.5);stroke:rgba(13,130,101,.5);stroke-width:.55}
-.vr{fill:rgba(13,130,101,.15);stroke:rgba(13,130,101,.5);stroke-width:.55}
+.vf{fill:var(--voxF);stroke:var(--voxS);stroke-width:.55}
+.vt{fill:var(--voxT);stroke:var(--voxS);stroke-width:.55}
+.vr{fill:var(--voxR);stroke:var(--voxS);stroke-width:.55}
 .pipe[data-step="1"] .sv[data-i="1"] .vox{animation:voxin .5s ease forwards}
 @keyframes voxin{to{opacity:1}}
 .gsn{opacity:0;transform-box:fill-box;transform-origin:center}
@@ -240,7 +283,7 @@ section + section{border-top:1px solid var(--line2)}
 @keyframes pin{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
 .ray{stroke:var(--mint);stroke-width:.9;fill:none;opacity:.55;stroke-dasharray:3 4}
 .pipe[data-step="3"] .sv[data-i="3"] .ray{animation:dash 1.4s linear infinite}
-.lossb{fill:rgba(192,86,17,.09);stroke:var(--amber);stroke-width:1}
+.lossb{fill:var(--ours);stroke:var(--amber);stroke-width:1}
 @media (prefers-reduced-motion:reduce){
   .pipe *{animation:none!important}
   .st{animation:none!important}
@@ -273,7 +316,7 @@ tr.dim td{opacity:.55}
 tr.ours td{background:var(--ours);color:var(--ink);font-weight:600}
 tr.ours td:first-child{color:var(--amber);font-weight:600;box-shadow:inset 3px 0 0 var(--amber)}
 tr.ours:hover td{background:var(--ours2)}
-tr.delta td{border-bottom:0;padding-top:2px;padding-bottom:9px;background:rgba(192,86,17,.05)}
+tr.delta td{border-bottom:0;padding-top:2px;padding-bottom:9px;background:var(--delta)}
 tr.delta td:first-child{color:var(--ink3);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
   font-family:var(--mono);box-shadow:inset 3px 0 0 var(--amber)}
 tbody tr:last-child td{border-bottom:0}
@@ -285,7 +328,7 @@ tr.ours .d{color:var(--amber)}
 .dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:8px;vertical-align:.08em}
 .dot.k0{background:transparent;border:1px solid var(--ink3)}
 .dot.k1{background:var(--mint)}
-.dot.k2{background:#c0392b}
+.dot.k2{background:var(--red)}
 .venue{color:var(--ink3);font-size:11px}
 .legend{display:flex;gap:20px;flex-wrap:wrap;font-family:var(--mono);font-size:10.5px;
   color:var(--ink3);margin:-14px 0 26px;letter-spacing:.04em}
@@ -300,9 +343,9 @@ details.abl>summary:hover{color:var(--mint)}
 .ablbody{padding:4px 18px 20px;border-top:1px solid var(--line2)}
 
 /* ============ animated similarity figure ============ */
-.simfig{border:1px solid var(--line);border-radius:8px;background:#fff;overflow:hidden;
-  box-shadow:0 18px 40px -32px rgba(25,28,34,.45)}
-.simstage{position:relative;aspect-ratio:16/10;width:100%;background:#fff}
+.simfig{border:1px solid var(--line);border-radius:8px;background:var(--stage);overflow:hidden;
+  box-shadow:0 18px 40px -32px var(--shadow2)}
+.simstage{position:relative;aspect-ratio:16/10;width:100%;background:var(--stage)}
 .simstage canvas{width:100%;height:100%;display:block;cursor:grab}
 .simstage canvas:active{cursor:grabbing}
 .simsteps{display:grid;grid-template-columns:repeat(3,1fr) auto;border-top:1px solid var(--line)}
@@ -326,10 +369,10 @@ figure{margin:0 0 34px}
 .figlab{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
   color:var(--ink3);margin-bottom:9px;display:flex;align-items:center;gap:10px}
 .figlab::after{content:"";flex:1;height:1px;background:var(--line2)}
-.plate{position:relative;border-radius:8px;padding:14px;background:#fff;
-  border:1px solid var(--line);box-shadow:0 18px 40px -32px rgba(25,28,34,.45);
+.plate{position:relative;border-radius:8px;padding:14px;background:var(--paper);
+  border:1px solid var(--line);box-shadow:0 18px 40px -32px var(--shadow2);
   transition:box-shadow .3s,border-color .3s}
-.plate:hover{border-color:rgba(192,86,17,.45);box-shadow:0 20px 44px -30px rgba(25,28,34,.5)}
+.plate:hover{border-color:var(--plateEdge);box-shadow:0 20px 44px -30px var(--shadow3)}
 .plate img{display:block;width:100%;height:auto;border-radius:3px}
 figcaption{font-size:13px;color:var(--ink3);line-height:1.6;margin-top:14px;padding-left:12px;
   border-left:2px solid var(--line)}
@@ -488,7 +531,7 @@ footer a:hover{color:var(--mint);border-color:var(--mint)}
       <svg viewBox="0 0 820 290" role="img" aria-label="Animated GaussianCross pipeline">
         <defs>
           <marker id="ah" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L6,3 L0,6 z" fill="#8b8e93"/>
+            <path class="arw" d="M0,0 L6,3 L0,6 z"/>
           </marker>
           <linearGradient id="gRGB" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stop-color="#8d6a4f"/><stop offset=".55" stop-color="#c9b39a"/><stop offset="1" stop-color="#5e4b3c"/>
@@ -613,8 +656,8 @@ footer a:hover{color:var(--mint);border-color:var(--mint)}
           <g class="ray">
             <path d="M150,150 L234,64"/><path d="M150,150 L234,144"/><path d="M150,150 L234,224"/>
           </g>
-          <circle cx="150" cy="150" r="7" fill="none" stroke="#0d8265" stroke-width="1.2"/>
-          <circle cx="150" cy="150" r="2.5" fill="#0d8265"/>
+          <circle class="qmk" cx="150" cy="150" r="7"/>
+          <circle class="qmk c" cx="150" cy="150" r="2.5"/>
           <text class="mt m sm" x="16" y="268">M = 5</text>
           <text class="tx m s" x="62" y="268">RANDOM POSED VIEWS</text>
 
@@ -637,8 +680,7 @@ footer a:hover{color:var(--mint);border-color:var(--mint)}
           <rect class="blkA" x="376" y="129" width="40" height="30" rx="3"/>
           <text class="mt a sm" x="396" y="149" text-anchor="middle">𝒫<tspan dy="4" font-size="8">ψ</tspan></text>
           <text class="mt" x="422" y="150">ℱ</text>
-          <path d="M426,141 l4,-4 l4,4" fill="none" stroke="#191c22" stroke-width="1.1"
-                stroke-linecap="round" stroke-linejoin="round"/>
+          <path class="tick" d="M426,141 l4,-4 l4,4"/>
           <path class="flow" d="M440,144 H460" marker-end="url(#ah)"/>
 
           <rect class="lossb" x="468" y="47" width="96" height="34" rx="3"/>
@@ -1011,6 +1053,27 @@ footer a:hover{color:var(--mint);border-color:var(--mint)}
 
 <script src="pcviewer.js"></script>
 <script>
+/* ---------- theme ----------------------------------------------------------
+   The page itself is pure CSS, but a WebGL canvas clears to a colour the style
+   sheet can't reach, so every live viewer is registered here and re-tinted when
+   the OS flips. Scans read dark on a dark ground, so night also lifts the input
+   RGB with a gamma below 1; the feature colours are already saturated.
+   Keep --stage in the style sheet and STAGE below in step.                    */
+var DARKQ=window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : {matches:false};
+var PCV=[];                                     /* live viewers */
+var STAGE={light:[1,1,1], dark:[0.055,0.063,0.078]};
+function tune(v){
+  var d=DARKQ.matches;
+  v.bg=d?STAGE.dark:STAGE.light;
+  v.gamma=d?[0.80,0.92]:[1,1];
+  return v;
+}
+(function(){
+  var relay=function(){ PCV.forEach(function(v){ tune(v).render(); }); };
+  if(DARKQ.addEventListener) DARKQ.addEventListener('change',relay);
+  else if(DARKQ.addListener) DARKQ.addListener(relay);
+})();
+
 /* ---------- deterministic pseudo-random so the diagram is stable ----------
    mulberry32: stays inside 32-bit integer range, unlike a naive LCG in JS     */
 function rnd(seed){
@@ -1054,7 +1117,7 @@ function el(tag,attrs){var n=document.createElementNS('http://www.w3.org/2000/sv
     box.setAttribute('class','blkD'); g.appendChild(box);
     for(var i=0;i<s[3];i++){
       var c=el('circle',{cx:(s[0]+6+r()*92).toFixed(1),cy:(s[1]-18+r()*36).toFixed(1),r:1.2});
-      c.setAttribute('fill','#7e8899'); c.setAttribute('opacity','.6'); g.appendChild(c);
+      c.setAttribute('class','pt'); c.setAttribute('opacity','.6'); g.appendChild(c);
     }
     var t=el('text',{x:s[0]+104,y:s[1]+38,'text-anchor':'end'});
     t.setAttribute('class','tx s'); t.textContent=s[2]; g.appendChild(t);
@@ -1094,7 +1157,8 @@ function el(tag,attrs){var n=document.createElementNS('http://www.w3.org/2000/sv
     for(var row=0;row<5;row++) for(var col=0;col<5;col++){
       var c=el('circle',{cx:(OX+col*SX+l*ADX).toFixed(1),
                          cy:(OY+row*SY+l*ADY).toFixed(1),
-                         r:(2.3-l*0.35).toFixed(2), fill:'#7e8899'});
+                         r:(2.3-l*0.35).toFixed(2)});
+      c.setAttribute('class','pt');
       c.setAttribute('opacity',(0.85-l*0.22).toFixed(2));
       a.appendChild(c);
     }
@@ -1206,8 +1270,8 @@ function show(id){
   }
   var go=function(buf){
     try{
-      if(!viewer) viewer=new PCViewer(document.getElementById('cv'),
-        {pointSize:2.1,background:[1,1,1],dist:2.02,shade:1});
+      if(!viewer) PCV.push(viewer=tune(new PCViewer(document.getElementById('cv'),
+        {pointSize:2.1,dist:2.02,shade:1})));
       viewer.load(buf);
       viewer.setMix(document.getElementById('mix').value/100);
       load.classList.add('gone');
@@ -1308,8 +1372,8 @@ show(SCENES[0][0]);
       console.error('[simfig]',m); delete cache[id]; cur=null; }
     function go(buf){
       try{
-        if(!view) view=new PCViewer(cv,{pointSize:2.3,background:[1,1,1],dist:2.28,
-                                        shade:0.85});
+        if(!view) PCV.push(view=tune(new PCViewer(cv,{pointSize:2.3,dist:2.28,
+                                                     shade:0.85})));
         view.load(buf); view.setPair(0,1); view.setMarker(0); view.setMix(0);
         load.classList.add('gone'); play();
       }catch(err){ fail(err.message); }
