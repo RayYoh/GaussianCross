@@ -1228,7 +1228,9 @@ function show(id){
             return out.buffer;
           }
           chunks.push(res.value); got+=res.value.length;
-          load.textContent='LOADING  '+Math.round(100*got/total)+'%';
+          // content-length is the gzipped size while got counts decompressed bytes,
+          // so the raw ratio overshoots 100% on GitHub Pages
+          load.textContent='LOADING  '+Math.min(100,Math.round(100*got/total))+'%';
           return pump();
         });
       })();
@@ -1327,7 +1329,9 @@ show(SCENES[0][0]);
               return out.buffer;
             }
             parts.push(res.value); got+=res.value.length;
-            load.textContent='LOADING  '+Math.round(100*got/total)+'%';
+            // content-length is the gzipped size while got counts decompressed bytes,
+            // so the raw ratio overshoots 100% on GitHub Pages
+            load.textContent='LOADING  '+Math.min(100,Math.round(100*got/total))+'%';
             return pump();
           });
         })();
