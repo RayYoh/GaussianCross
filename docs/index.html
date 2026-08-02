@@ -11,6 +11,17 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#f6f4ef" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#14161b" media="(prefers-color-scheme: dark)">
+<script>
+/* Runs before the first paint so a stored choice never flashes the other theme.
+   No stored choice means no attribute at all, which leaves the page on the
+   prefers-color-scheme media query — the system setting stays the default. */
+(function(){
+  try{
+    var t=localStorage.getItem('gcx-theme');
+    if(t==='dark'||t==='light') document.documentElement.setAttribute('data-theme',t);
+  }catch(e){}
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -44,8 +55,15 @@
 /* Night follows the OS setting. Accents are lifted well above their paper values —
    #c05611 and #0d8265 both go muddy against a dark ground — while the raster figure
    plates deliberately stay white so the paper artwork is never re-tinted. */
+/* ---- SYNC WARNING -------------------------------------------------------
+   The night palette below is written twice, and the two copies must stay
+   identical. The media query is the path with no JavaScript; the [data-theme]
+   rule is the explicit choice, stamped on <html> before the first paint.
+   CSS has no way to share one declaration block across a media boundary, and
+   light-dark() is too young to bet the whole page on, so: edit both or neither.
+   ------------------------------------------------------------------------- */
 @media (prefers-color-scheme:dark){
-  :root{
+  :root:not([data-theme]){
     --bg:#14161b; --bg2:#1a1d23; --line:#333944; --line2:#242830;
     --ink:#edeff3; --ink2:#a6adb9; --ink3:#767d8a;
     --amber:#f08a3c; --mint:#33c49b; --gold:#e8b355;
@@ -64,6 +82,54 @@
     --voxS:rgba(51,196,155,.55); --red:#e2604d;
   }
 }
+/* second copy — see SYNC WARNING above */
+:root[data-theme="dark"]{
+  --bg:#14161b; --bg2:#1a1d23; --line:#333944; --line2:#242830;
+  --ink:#edeff3; --ink2:#a6adb9; --ink3:#767d8a;
+  --amber:#f08a3c; --mint:#33c49b; --gold:#e8b355;
+  --tint:rgba(255,255,255,.04); --tint2:rgba(255,255,255,.07);
+  --ours:rgba(240,138,60,.13); --ours2:rgba(240,138,60,.20); --delta:rgba(240,138,60,.07);
+  --onAccent:#14161b;
+  --glowA:rgba(240,138,60,.10); --glowB:rgba(51,196,155,.08); --glowC:rgba(51,196,155,.05);
+  --plateEdge:rgba(240,138,60,.5);
+  --stage:#0e1014; --stageInk:#6c7481; --chrome:rgba(14,16,20,.82); --chromeLine:#39404b;
+  --chromeInk:#98a1ae; --chromeInkH:#edeff3; --track:#3d4450; --thumb:#e9ebef;
+  --shadow:rgba(0,0,0,.60); --shadow2:rgba(0,0,0,.70); --shadow3:rgba(0,0,0,.75);
+  --isoTop:rgba(255,255,255,.10); --isoSide:rgba(255,255,255,.045);
+  --isoFront:rgba(255,255,255,.015);
+  --isoEdge:#5b6472; --dotInk:#8d96a4; --fillM:rgba(51,196,155,.13); --fillD:rgba(255,255,255,.035);
+  --voxF:rgba(51,196,155,.30); --voxT:rgba(51,196,155,.55); --voxR:rgba(51,196,155,.16);
+  --voxS:rgba(51,196,155,.55); --red:#e2604d;
+}
+:root[data-theme="dark"]{color-scheme:dark}
+:root[data-theme="light"]{color-scheme:light}
+
+/* ---- theme toggle -------------------------------------------------------- */
+.tt{position:fixed;top:14px;right:14px;z-index:60;width:36px;height:36px;padding:0;
+  display:grid;place-items:center;cursor:pointer;border-radius:50%;
+  border:1px solid var(--line);background:var(--chrome);color:var(--ink2);
+  -webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px);
+  transition:color .18s,border-color .18s,transform .18s}
+.tt:hover{color:var(--amber);border-color:var(--amber);transform:rotate(-18deg)}
+.tt:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
+.tt svg{width:17px;height:17px;display:block;grid-area:1/1;fill:none;
+  stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
+  transition:opacity .28s,transform .28s}
+/* the button shows where it takes you, not where you are: a moon on the light
+   page, a sun on the dark one */
+.tt .sun{opacity:0;transform:scale(.55) rotate(70deg)}
+.tt .moon{opacity:1;transform:none}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme]) .tt .sun{opacity:1;transform:none}
+  :root:not([data-theme]) .tt .moon{opacity:0;transform:scale(.55) rotate(-70deg)}
+}
+:root[data-theme="dark"] .tt .sun{opacity:1;transform:none}
+:root[data-theme="dark"] .tt .moon{opacity:0;transform:scale(.55) rotate(-70deg)}
+@media (prefers-reduced-motion:reduce){
+  .tt,.tt svg{transition:none}
+  .tt:hover{transform:none}
+}
+@media(max-width:560px){.tt{top:8px;right:8px;width:32px;height:32px}}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--serif);
@@ -403,6 +469,16 @@ footer a:hover{color:var(--mint);border-color:var(--mint)}
 </style>
 </head>
 <body>
+
+<button class="tt" id="tt" type="button" aria-label="Switch to night" title="Switch to night">
+  <svg class="sun" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="12" r="4.2"/>
+    <path d="M12 2.4v2.3M12 19.3v2.3M2.4 12h2.3M19.3 12h2.3M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/>
+  </svg>
+  <svg class="moon" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1z"/>
+  </svg>
+</button>
 
 <!-- ===================== HERO ===================== -->
 <section class="hero">
@@ -1054,24 +1130,62 @@ footer a:hover{color:var(--mint);border-color:var(--mint)}
 <script src="pcviewer.js"></script>
 <script>
 /* ---------- theme ----------------------------------------------------------
-   The page itself is pure CSS, but a WebGL canvas clears to a colour the style
-   sheet can't reach, so every live viewer is registered here and re-tinted when
-   the OS flips. Scans read dark on a dark ground, so night also lifts the input
-   RGB with a gamma below 1; the feature colours are already saturated.
-   Keep --stage in the style sheet and STAGE below in step.                    */
+   The palette itself is pure CSS. JS only has to record an explicit choice and
+   re-tint the WebGL canvases, whose clear colour no style sheet can reach. The
+   stage colour is read back out of --stage rather than repeated here, so the
+   two can never drift. Scans go muddy on a dark ground, so night also lifts the
+   input RGB with a gamma below 1; feature colours are already saturated.      */
 var DARKQ=window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : {matches:false};
 var PCV=[];                                     /* live viewers */
-var STAGE={light:[1,1,1], dark:[0.055,0.063,0.078]};
+var ROOT=document.documentElement;
+function isDark(){
+  var t=ROOT.getAttribute('data-theme');
+  return t ? t==='dark' : DARKQ.matches;        /* no attribute = follow the OS */
+}
+function cssRGB(name,fallback){
+  var v=getComputedStyle(ROOT).getPropertyValue(name).trim();
+  var m=/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(v);
+  if(!m) return fallback;
+  var h=m[1]; if(h.length===3) h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+  return [parseInt(h.slice(0,2),16)/255,parseInt(h.slice(2,4),16)/255,parseInt(h.slice(4,6),16)/255];
+}
 function tune(v){
-  var d=DARKQ.matches;
-  v.bg=d?STAGE.dark:STAGE.light;
+  var d=isDark();
+  v.bg=cssRGB('--stage', d?[0.055,0.063,0.078]:[1,1,1]);
   v.gamma=d?[0.80,0.92]:[1,1];
   return v;
 }
 (function(){
-  var relay=function(){ PCV.forEach(function(v){ tune(v).render(); }); };
+  var btn=document.getElementById('tt');
+  function paint(){
+    var d=isDark(), lab=d?'Switch to day':'Switch to night';
+    if(btn){ btn.setAttribute('aria-label',lab); btn.setAttribute('title',lab); }
+    /* the two <meta theme-color> tags in the head answer the media query, which
+       an explicit choice has just overruled — so shadow them while one is set */
+    var m=document.getElementById('tcx');
+    if(ROOT.getAttribute('data-theme')){
+      if(!m){ m=document.createElement('meta'); m.id='tcx'; m.name='theme-color'; document.head.appendChild(m); }
+      m.setAttribute('content', d?'#14161b':'#f6f4ef');
+    }else if(m){ m.parentNode.removeChild(m); }
+    PCV.forEach(function(v){ tune(v).render(); });
+  }
+  if(btn) btn.addEventListener('click',function(){
+    var want=isDark()?'light':'dark';
+    /* landing back on what the system already says drops the override entirely,
+       so the page resumes following the OS instead of freezing on this choice */
+    if(want===(DARKQ.matches?'dark':'light')){
+      ROOT.removeAttribute('data-theme');
+      try{ localStorage.removeItem('gcx-theme'); }catch(e){}
+    }else{
+      ROOT.setAttribute('data-theme',want);
+      try{ localStorage.setItem('gcx-theme',want); }catch(e){}
+    }
+    paint();
+  });
+  var relay=function(){ if(!ROOT.getAttribute('data-theme')) paint(); };
   if(DARKQ.addEventListener) DARKQ.addEventListener('change',relay);
   else if(DARKQ.addListener) DARKQ.addListener(relay);
+  paint();
 })();
 
 /* ---------- deterministic pseudo-random so the diagram is stable ----------
